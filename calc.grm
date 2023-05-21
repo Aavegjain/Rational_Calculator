@@ -1,0 +1,45 @@
+
+
+%%
+%eop EOF SEMI
+%pos int
+
+%left MINUS PLUS
+%left MULT DIV
+%left LPAREN RPAREN
+
+%term RATIONAL of Rational.rational  | PLUS | MINUS | MULT | DIV | EOF | SEMI | LPAREN | RPAREN | PRINT_RAT | PRINT_DEC |  EQUAL | COMMA | VAR of string
+%nonterm    STATEMENT of Rational.rational option | EXPRESSION of Rational.rational | DECLARATION of Rational.rational | PRINT
+
+%name Rational_Calc
+
+%prefer PLUS MULT DIV MINUS
+%keyword SEMI
+
+%noshift EOF
+%nodefault
+%verbose
+
+
+%%
+
+STATEMENT : EXPRESSION  ( SOME(EXPRESSION)  )
+            | DECLARATION (NONE)
+            | PRINT (NONE)
+            | (NONE)
+
+PRINT     :  PRINT_RAT VAR ( print(VAR ^ "= " ^ Rational.showRat(SymTable.lookup_entry(VAR))^"\n" ))
+            | PRINT_DEC VAR ( print(VAR ^ "= " ^  Rational.showDecimal(SymTable.lookup_entry(VAR)) ^"\n" ))
+
+DECLARATION : VAR EQUAL EXPRESSION (let val x = SymTable.add_entry(VAR,EXPRESSION) in EXPRESSION end )
+            | VAR COMMA DECLARATION ( let val x = SymTable.add_entry(VAR, DECLARATION) in DECLARATION end  )
+
+EXPRESSION : EXPRESSION PLUS EXPRESSION (Rational.add(EXPRESSION1, EXPRESSION2) )
+             | EXPRESSION MINUS EXPRESSION (Rational.subtract(EXPRESSION1, EXPRESSION2) )
+             | EXPRESSION MULT EXPRESSION (Rational.multiply(EXPRESSION1, EXPRESSION2) )
+             | EXPRESSION DIV EXPRESSION (valOf(Rational.divide(EXPRESSION1, EXPRESSION2)))
+             | LPAREN EXPRESSION RPAREN (EXPRESSION)
+             | RATIONAL (RATIONAL)
+             | VAR (SymTable.lookup_entry(VAR))
+             | MINUS RATIONAL (Rational.neg(RATIONAL))
+             | MINUS VAR (Rational.neg(SymTable.lookup_entry(VAR)))
